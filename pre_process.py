@@ -1,4 +1,4 @@
-# TODO - add comment
+# PreProcess Class
 from os.path import isfile, getsize
 import pandas as pd
 
@@ -10,14 +10,12 @@ class PreProcess:
         self.error_message = ""
 
     def pre_process(self):
-        self.df = pd.read_excel(self.file_path)
-        # TODO - check if no values?
         self.complete_missing_values_and_normalize()
         self.aggregate_by_country()
 
     def verifications(self):
         # verify several tests to see if the file can be pre-processed
-        funcs = [self.verify_file_exists, self.verify_file_not_empty, self.verify_file_xlsx]
+        funcs = [self.verify_file_exists, self.verify_file_not_empty, self.verify_file_excel, self.verify_contains_data]
         for f in funcs:
             self.error_message = f()
             if self.error_message != "":
@@ -32,9 +30,15 @@ class PreProcess:
         # verify if the file can be pre-processed
         return "" if getsize(self.file_path) > 0 else "file is empty"
 
-    def verify_file_xlsx(self):
+    def verify_file_excel(self):
         # verify if the given file is in xlsx format
-        return "" if self.file_path.lower().endswith('.xlsx') else "the given file is not in xlsx format"
+        return "" if (self.file_path.lower().endswith('.xlsx') or self.file_path.lower().endswith('.xls'))\
+            else "the given file is not in xlsx format"
+
+    def verify_contains_data(self):
+        # verify if the file only has headers and no data
+        self.df = pd.read_excel(self.file_path)
+        return "" if not self.df.empty else "excel file contains only headers, no data"
 
     def complete_missing_values_and_normalize(self):
         # fill missing values by their average and standardize them later

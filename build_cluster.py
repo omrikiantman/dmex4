@@ -1,4 +1,4 @@
-# TODO - add comments
+# BuildCluster Class
 from sklearn.cluster import KMeans
 
 
@@ -10,7 +10,7 @@ class BuildCluster:
         self.error_message = ""
 
     def build_cluster(self):
-        # build a cluster using kmeans algo with random centroids
+        # build a cluster using kmeans algorithm with random centroids
         # TODO - does random centroids means init = random?
         kmeans = KMeans(n_clusters=self.n_clusters, n_init=self.n_init, init='random')
         kmeans.fit(self.df.drop(['country'], axis=1))

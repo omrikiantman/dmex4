@@ -1,12 +1,15 @@
-# TODO - add comments
+# GUI class
 from Tkinter import Label, Button, Entry, W, E, StringVar, PhotoImage, Image
-import tkFileDialog  # TODO - this module is considered part of tkinter?
-import tkMessageBox  # TODO - this module is considered part of tkinter?
+import tkFileDialog
+import tkMessageBox
 from pre_process import PreProcess
 from build_cluster import BuildCluster
 from traceback import print_exc
 from sys import stdout
 import matplotlib.pyplot as plt
+from PIL import Image
+import plotly.plotly as py
+import pandas as pd
 
 class Gui:
     def __init__(self, master, head_title):
@@ -40,6 +43,9 @@ class Gui:
 
         self.pre_process_button = Button(master, text='Pre-process', command=self.pre_process)
         self.build_model_button = Button(master, text='Cluster', command=self.build_model)
+
+        self.scatter_label = Label(self.master)
+        self.horopleth_label = Label(master)
         # LAYOUT
 
         self.file_path_label.grid(row=0, column=0, sticky=W)
@@ -55,8 +61,11 @@ class Gui:
         self.pre_process_button.grid(row=3, column=1, sticky=W)
         self.build_model_button.grid(row=4, column=1, sticky=W)
 
+        self.scatter_label.grid(row=5, column=0, sticky=W)
+        self.horopleth_label.grid(row=5, column=1, sticky=E)
+
     def browse(self):
-        # TODO - add comments
+        # browse method for choosing the data file
         path = tkFileDialog.askopenfilename()
         if path is None or path == '':
             return
@@ -65,14 +74,15 @@ class Gui:
         self.file_path_text.set(self.file_path)
 
     def pre_process(self):
+        # pre process the data to fit into the algorithm
         if self.processor is not None:
+            # if we already ran this, ask the user if he wants to run it again
             result = tkMessageBox.askquestion(
                 message="pre-processing has already been made.\nare you sure you want to run it again?'",
                 icon='warning', title=self.head_title)
             if result != 'yes':
                 return
         self.processor = None
-        # TODO - add comments
         self.is_pre_processed = False
         try:
             # verify the file can be pre-processed
@@ -82,6 +92,7 @@ class Gui:
                 tkMessageBox.showerror(title=self.head_title, message=processor.error_message)
                 return
 
+            # process the data
             processor.pre_process()
             tkMessageBox.showinfo(title=self.head_title, message='Preprocessing completed successfully')
             self.processor = processor
@@ -93,12 +104,13 @@ class Gui:
             tkMessageBox.showerror(title=self.head_title, message=message)
 
     def build_model(self):
-        # TODO - add comments
+        # build the kmeans model
         if not self.is_pre_processed:
             tkMessageBox.showerror(title=self.head_title, message="pre processing is not validated yet")
             return
 
         if self.cluster is not None:
+            # if we already ran the clustering, verify if we really want to run it again
             result = tkMessageBox.askquestion(
                 message="clustering has already been made.\nare you sure you want to run it again?",
                 icon='warning', title=self.head_title)
@@ -106,17 +118,19 @@ class Gui:
                 return
         self.cluster = None
         try:
+            # create the kmeans model
             self.n_clusters = self.n_clusters_text.get()
             self.n_init = self.n_init_text.get()
             model = BuildCluster(self.n_clusters, self.n_init, self.processor.df)
-            # TODO verify that cluster & init are Integers and that their range make sense
             if model.verifications() is False:
                 tkMessageBox.showerror(title=self.head_title, message=model.error_message)
                 return
 
             model.build_cluster()
             self.cluster = model
+            # draw the graphs in the gui
             self.draw_graphs()
+            tkMessageBox.showinfo(title=self.head_title, message='Clustering Finished successfully!')
         except Exception as err:
             template = "An exception of type {0} occurred. Arguments:{1}"
             message = template.format(type(err).__name__, err)
@@ -130,19 +144,70 @@ class Gui:
 
     def draw_scatter(self):
         # Draw a scatter plot of Generosity vs social support
-        # TODO - can we simply save the file and present it?
         df = self.cluster.df
-        fig_path = ('scatter.png')
+        fig_path = 'scatter.png'
         plt.scatter(x=df['Generosity'], y=df['Social support'], c=df['cluster'], alpha=0.5)
         plt.xlabel('Generosity')
         plt.ylabel('Social support')
         plt.title("Scatter of Generosity vs Social Support, colored by clusters")
-        # TODO - the legend isn't displaying the clusters number
-        plt.legend(loc='upper right')
         plt.savefig(fig_path)
-        # TODO - display the graph
+        # convert from png to gif
+        convert_png_to_gif(fig_path)
+        # display in GUI
+        photo = PhotoImage(file=fig_path.replace('png', 'gif'))
+        self.scatter_label.configure(image=photo, width='400px', height='400px')
+        self.scatter_label.image = photo
 
     def draw_horopleth(self):
         # Draw a horopleth of the country clusters
-        # TODO - implemnt this
-        return True
+        df = self.cluster.df
+        py.sign_in('omrikipiki', 'VcDvTak2bEIiyOfiaxMj')
+        data = [dict(
+            type='choropleth',
+            locations=df['country'],
+            z=df['cluster'],
+            text=df['country'],
+            locationmode ='country names',
+            colorscale=[[0, "rgb(5, 10, 172)"], [0.35, "rgb(40, 60, 190)"], [0.5, "rgb(70, 100, 245)"],
+                        [0.6, "rgb(90, 120, 245)"], [0.7, "rgb(106, 137, 247)"], [1, "rgb(220, 220, 220)"]],
+            autocolorscale=False,
+            reversescale=True,
+            marker=dict(
+                line=dict(
+                    color='rgb(180,180,180)',
+                    width=0.5
+                )),
+            colorbar=dict(
+                # autotick=False,
+                title='Cluster Group'),
+        )]
+
+        layout = dict(
+            title='K-Means Clustering Visualization',
+            geo=dict(
+                showframe=False,
+                showcoastlines=False,
+                projection=dict(
+                    type='Mercator'
+                )
+            )
+        )
+        fig = dict(data=data, layout=layout)
+
+        py.iplot(fig, validate=False, filename='d3-world-map')
+
+        fig_path = 'choromap.png'
+        py.image.save_as(fig, filename=fig_path)
+        # convert to gif
+        convert_png_to_gif(fig_path)
+        # put in GUI
+        photo = PhotoImage(file=fig_path.replace('png', 'gif'))
+        self.horopleth_label.configure(image=photo, width='600px', height='600px')
+        self.horopleth_label.image = photo
+
+
+def convert_png_to_gif(fig_path):
+    # convert png images saved on disk to gif images
+    im = Image.open(fig_path)
+    im = im.convert('RGB').convert('P', palette=Image.ADAPTIVE)
+    im.save(fig_path.replace('.png', '.gif'))

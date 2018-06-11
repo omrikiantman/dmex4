@@ -1,4 +1,4 @@
-# TODO - add comments
+# Main
 from Tkinter import Tk
 from gui import Gui
 

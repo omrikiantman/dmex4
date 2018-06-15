@@ -11,8 +11,7 @@ class BuildCluster:
 
     def build_cluster(self):
         # build a cluster using kmeans algorithm with random centroids
-        # TODO - does random centroids means init = random?
-        kmeans = KMeans(n_clusters=self.n_clusters, n_init=self.n_init, init='random')
+        kmeans = KMeans(n_clusters=self.n_clusters, n_init=self.n_init)
         kmeans.fit(self.df.drop(['country'], axis=1))
         self.df['cluster'] = kmeans.labels_
 

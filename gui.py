@@ -9,7 +9,7 @@ from sys import stdout
 import matplotlib.pyplot as plt
 from PIL import Image
 import plotly.plotly as py
-import pandas as pd
+
 
 class Gui:
     def __init__(self, master, head_title):
@@ -24,7 +24,6 @@ class Gui:
         self.is_pre_processed = False
         self.processor = None
         self.cluster = None
-        self.scatter_path = ''
 
         # Tkinter gui
 
@@ -167,7 +166,7 @@ class Gui:
             locations=df['country'],
             z=df['cluster'],
             text=df['country'],
-            locationmode ='country names',
+            locationmode='country names',
             colorscale=[[0, "rgb(5, 10, 172)"], [0.35, "rgb(40, 60, 190)"], [0.5, "rgb(70, 100, 245)"],
                         [0.6, "rgb(90, 120, 245)"], [0.7, "rgb(106, 137, 247)"], [1, "rgb(220, 220, 220)"]],
             autocolorscale=False,
